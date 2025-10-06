@@ -67,9 +67,11 @@ const lastCard = ref("")
 const currentUser = ref(new HCUser)
 const currentRoom = ref(new HCRoom)
 const currentRoomMembers: Ref<Array<HCUser>> = ref(new Array<HCUser>)
+const lowestVote = ref(0)
+const highestVote = ref(0)
+
 const userId: Ref<string> = ref(useCookie('_id').value as string)
 let roomId: string = route.currentRoute.value.query.id as string
-const sortedVotes = ref()
 const showQRCodeModal = ref(false)
 const minutes:Ref<string> = ref("00")
 const seconds:Ref<string> = ref("00")
@@ -264,38 +266,21 @@ function mounted(){
 		currentUser.value = currentRoomMembers.value.find(member => member.id == userId.value) as HCUser
 
 		if (currentRoom.value.status == HCRoomStatus.reviewing){
-			const voteOrder = {
-				'N/A': -1,
-				'Coffee Break': 0,
-				'0': 1,
-				'1/2': 2,
-				'1': 3,
-				'2': 4,
-				'3': 5,
-				'5': 6,
-				'8': 7,
-				'13': 8,
-				'20': 9,
-				'40': 10,
-				'100': 11,
-				'?': 12,
-			};
-
-			currentRoomMembers.value.sort((a, b) => {
+			// sort currentRoomMembers.value by vote
+			currentRoomMembers.value = currentRoomMembers.value.sort((a, b) => {
 				//@ts-ignore
-				const voteA = voteOrder[a.vote];
+				const voteA = currentRoom.value.votes[a.id] ?? -1;
 				//@ts-ignore
-				const voteB = voteOrder[b.vote];
-
-				// Sorting logic
-				if (voteA < voteB) {
-					return -1;
-				}
-				if (voteA > voteB) {
-					return 1;
-				}
-				return 0;
-				});
+				const voteB = currentRoom.value.votes[b.id] ?? -1;
+				return voteA - voteB;
+			});
+			//@ts-ignore
+			lowestVote.value = Math.min(...Object.values(currentRoom.value.votes).filter(vote => vote >= 0));
+			//@ts-ignore
+			highestVote.value = Math.max(...Object.values(currentRoom.value.votes).filter(vote => vote >= 0));
+			if (lowestVote.value == highestVote.value){
+				lowestVote.value = NaN
+			}
 		}
 
 		displayName.value = currentUser.value.displayName
@@ -326,8 +311,6 @@ function mounted(){
 			roomUrlName.value = currentRoom.value.urlName
 		}
 		
-		sortedVotes.value = Object.values(currentRoom.value.votes).map((vote, index) => ({ vote, userId: Object.keys(currentRoom.value.votes)[index] }));
-		sortedVotes.value.sort((a: any, b: any) => a.vote - b.vote);
 		let votes: TSMap<string, number> = getRoomVotesMap(currentRoom.value)
 		pieData.value.labels = votes.keys()
 		pieData.value.datasets[0].data = votes.values()
@@ -536,7 +519,7 @@ watch(roomTopicName, ()=>{
 					<p class="font-bold text-black dark:text-gray-300">Status</p>
 				</div>
 				<div class="border-slate-400 border-t-2 mt-5 pt-6 pb-6 flex flex-col gap-2">
-					<roomMemberDisplayItem v-for="member in currentRoomMembers" :user-id=userId :room-status=currentRoom.status :member=member></roomMemberDisplayItem>
+					<roomMemberDisplayItem v-for="member in currentRoomMembers" :user-id=userId :room-status=currentRoom.status :member=member :lowest-vote="lowestVote" :highest-vote="highestVote"></roomMemberDisplayItem>
 				</div>
 			</div>
 			<div class="bg-transparent rounded-2xl flex w-full items-center gap-5">
@@ -653,7 +636,7 @@ watch(roomTopicName, ()=>{
 					<p class="font-bold text-black dark:text-gray-300">Status</p>
 				</div>
 				<div class="border-slate-400 border-t-2 mt-5 pt-6 pb-6 flex flex-col gap-2">
-					<roomMemberDisplayItem v-for="member in currentRoomMembers" :user-id=userId :room-status=currentRoom.status :member=member></roomMemberDisplayItem>
+					<roomMemberDisplayItem v-for="member in currentRoomMembers" :user-id=userId :room-status=currentRoom.status :member=member :lowest-vote="lowestVote" :highest-vote="highestVote"></roomMemberDisplayItem>
 				</div>
 			</div>
 			<input v-if="currentRoom.urlName == ''" disabled placeholder="URL" class="w-full bg-gray-300 dark:bg-gray-700 rounded-2xl p-4">
@@ -737,7 +720,7 @@ watch(roomTopicName, ()=>{
 						<p class="font-bold text-black dark:text-gray-300">Status</p>
 					</div>
 					<div class="border-slate-400 border-t-2 mt-5 pt-6 pb-6 flex flex-col gap-2">
-						<roomMemberDisplayItem v-for="member in currentRoomMembers" :user-id=userId :member=member :room-status=currentRoom.status></roomMemberDisplayItem>
+						<roomMemberDisplayItem v-for="member in currentRoomMembers" :user-id=userId :member=member :room-status=currentRoom.status :lowest-vote="lowestVote" :highest-vote="highestVote"></roomMemberDisplayItem>
 					</div>
 				</div>
 			</div>
