@@ -66,7 +66,6 @@ if (!props.member.online) {
 }
 
 watch(props, () => {
-	console.log("CHILD MIN MAX", props.lowestVote, props.highestVote)
 	if (props.member.permissions.host) {
 		hostClass.value = "text-red-500"
 	}

@@ -281,7 +281,6 @@ function mounted(){
 			if (lowestVote.value == highestVote.value){
 				lowestVote.value = NaN
 			}
-			console.log("PARENT MIN MAX", lowestVote.value, highestVote.value)
 		}
 
 		displayName.value = currentUser.value.displayName
